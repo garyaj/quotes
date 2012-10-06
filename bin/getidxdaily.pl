@@ -1,4 +1,4 @@
-#!/sw/bin/perl -w
+#!/usr/bin/env perl
 # GAJ:20010802: get ASX/S&P indices from Yahoo
 # Saves huge amount of time and useless HTML padding
 # Quotes delayed at least 20 minutes
@@ -17,12 +17,11 @@
 # n  = Name of company		p  = Previous close
 # x  = Name of Stock Exchange
 
+use 5.010;
 use LWP::Simple;
-use Class::Date qw(date);
-use strict;
 
-my $dt = date(time);
-my $today = sprintf("%04d%02d%02d", $dt->year, $dt->month, $dt->day);
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
+my $today = sprintf("%04d%02d%02d", $year+1900, $mon+1, $mday);
 
 $|++;
 my $dayfile = "$ENV{HOME}/quotes/allidx_day_$today.txt";
@@ -67,7 +66,7 @@ $quotes = join '+', keys %stlist;
 $str .= "$quotes&f=sd1ohgl9&e=.csv";
 
 my $content = get("http://quote.yahoo.com$str");
-my @lines = split /\r\n/, $content;
+my @lines = split /\r?\n/, $content;
 foreach (@lines) {
 	#Get rid of ' - '
 	s/ - /,/g; 
@@ -80,8 +79,8 @@ foreach (@lines) {
 	if ($f > 0 and $c == 0 and $d == 0 and $e == 0) {
 		$c = $d = $e = $f;
 	}
-	$b =~ s%(\d+)/(\d+)%$2/$1%;
-	printf "%s\t%s\t%.3f\t%.3f\t%.3f\t%.3f\r", $stlist{$a}, $b, $c, $d, $e, $f;
+	$b =~ s%(\d+)/(\d+)/(\d+)%$3$1$2%;
+	printf "%s,%s,%.3f,%.3f,%.3f,%.3f\n", $stlist{$a}, $b, $c, $d, $e, $f;
 	print STDERR "$f";
 	print STDERR "\n";
 }
