@@ -1,0 +1,30 @@
+#!/usr/bin/perl -w
+#Given an ASX code, the script retrieves an XML-formatted quote
+#from TradingRoom (http://www1.tradingroom.com.au/tpl/investments/tr_prev_sec_details.isam?code=BHP)
+#and then displays the stockname from the appropriate field
+
+package main;
+use XML::Simple;
+use LWP::Simple;
+use Carp;
+use strict;
+
+$|++; #immediate output
+
+my $xs1 = XML::Simple->new();
+my $doc;
+my $file;
+my $stock;
+while(<>) {
+	chomp;
+	$stock = $_;
+	print $stock;
+	eval {
+		$file = get("http://www1.tradingroom.com.au/tpl/investments/tr_prev_sec_details.isam?code=$stock");
+		if ($file) {
+			$doc = $xs1->XMLin("$file");
+			print "\t",$doc->{Issuer_name};
+		}
+	};
+	print "\n";
+}

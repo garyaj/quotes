@@ -1,0 +1,32 @@
+#!/usr/local/bin/perl -w
+use lib "$ENV{HOME}/lib";
+use TradingRoomOHLCVI;
+use strict;
+
+$|++;
+my @t = localtime();
+my $today = sprintf("%04d%02d%02d", $t[5]+1900, $t[4]+1 ,$t[3]);
+
+system ("$ENV{HOME}/bin/getwarrlist.sh");
+my $dayfile = "$ENV{HOME}/allwarrs_day_$today.txt";
+open(OUT, ">$dayfile") or die "Can't open $dayfile";
+my $pfile = "warrlist.lst";
+open(IN, "$ENV{HOME}/bin/$pfile") or die "Can't open $pfile";
+
+my @a;
+my $tr;
+$,="\t";
+select OUT;
+while (<IN>) {
+	chomp;
+	s/\s.*$//;
+	$tr = TradingRoomOHLCVI->new($_);
+	@a = $tr->showit;
+	if ($a[2] or $a[3] or $a[4] or $a[5]) {
+		print @a;
+		print "\r";
+	}
+}
+
+close IN;
+close OUT;

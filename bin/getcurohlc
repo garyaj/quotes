@@ -1,0 +1,59 @@
+#!/usr/bin/perl -w
+#Given an ASX code, the script retrieves an HTML page containing the 
+#current Open,High,Low,Close,Volume data for the stock from 203.26.177.136
+#and this HTML page is parsed to extract the data from the HTML and it is added
+#to a hash database, keyed on date.
+# Out: $h{date(yyyymmdd)} = [qw(open high low close volume)]
+package TableStripper;
+use base HTML::Parser;
+sub start {
+	my($self, $tagname, $attr, $attrseq, $origtext) = @_;
+	$self->{tt_seen}++ if $tagname eq "tt";
+	$self->{tt_count}++ if $tagname eq "tt";
+	$self->SUPER::start(@_);
+}
+sub end {
+	my($self, $tagname, $origtext) = @_;
+	$self->SUPER::end(@_);
+	$self->{tt_seen}-- if $tagname eq "tt";
+}
+sub text {
+	my($self, $origtext, $is_cdata) = @_;
+	if ($self->{tt_seen}) {
+	  if ($self->{tt_count} >= 1 and $self->{tt_count} <= 4
+	    or $self->{tt_count} == 10) {
+		$main::out_text .= "$origtext|";
+	  }	
+	}
+}
+
+package main;
+use Fcntl;
+use MLDBM qw(DB_File Storable);
+use DB_File;
+use Carp;
+use POSIX qw(strftime);
+use strict;
+$|++; #immediate output
+
+my $response;
+my $tr_seen;
+my $tt_seen;
+my $out_text;
+my $stock = shift @ARGV;
+system("wget -nv -O /tmp/tmpwg.txt http://203.26.177.136/investments/tr_prev_sec_details.isam?code=$stock");
+TableStripper->new->parse_file("/tmp/tmpwg.txt");
+$main::out_text =~ s/\|$//;
+
+my %h;
+my $dbfile = $stock;
+$dbfile =~ tr/A-Z/a-z/;
+
+tie %h, 'MLDBM', "$dbfile", O_RDWR|O_CREAT, 0664, $DB_BTREE
+	or croak "Cannot access $dbfile database:$!\n";
+
+my @a = split /\|/, $main::out_text;
+$a[4] =~ s/,//g;
+($a[0],$a[3]) = ($a[3], $a[0]);	#Trading Room swaps open and close
+my $k = strftime("%Y%m%d", localtime());
+$h{$k} = [@a];

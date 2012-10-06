@@ -1,0 +1,3 @@
+#!/bin/sh
+f1=`echo $1 | tr [A-Z] [a-z]`
+wget --output-document=$f1.txt http://203.26.177.136/investments/tr_cur_price_hist_csv.isam?code=$1

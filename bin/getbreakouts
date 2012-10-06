@@ -1,0 +1,34 @@
+#!/usr/bin/perl -w
+#Given a list of ASX codes, the script retrieves an XML-formatted quote
+#from TradingRoom (http://www1.tradingroom.com.au/tpl/investments/tr_prev_sec_details.isam?code=BHP)
+#and then displays those stocks for which the Perc_movement field is greater than 1% 
+#and value of trades (volume * latest price) > $1m
+
+package main;
+use XML::Simple;
+use LWP::Simple;
+use Carp;
+use strict;
+
+$|++; #immediate output
+
+my $xs1 = XML::Simple->new();
+my $doc;
+my $file;
+my $stock;
+my $value;
+my $mvmt;
+while(<>) {
+	chomp;
+	$stock = $_;
+	eval {
+		$file = get("http://www1.tradingroom.com.au/tpl/investments/tr_prev_sec_details.isam?code=$stock");
+		if ($file) {
+			$doc = $xs1->XMLin("$file");
+			$value = $doc->{Value};
+			$value =~ s/,//g;
+			$mvmt = $doc->{Perc_movement};
+			print "$stock\t$mvmt\t$value\n" if ($value > 1E6 and $mvmt > 1.0);
+		}
+	};
+}

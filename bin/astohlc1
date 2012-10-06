@@ -1,0 +1,152 @@
+#!/usr/bin/perl
+# Abe's Stock Ticker v1.0
+# AKA mst: McIver's Stock Ticker
+# AKA *st: *'s Stock Ticker
+# created: 2/6/98
+# last updated: 01/04/01
+
+# Displays stock quotes to your terminal.
+# Quotes delayed at least 20 minutes, via Yahoo!
+# Requires lynx to retrieve quotes
+
+# v1.0
+# Modified to use comma separated yahoo CGI
+# Josh McIver <jmmc at flaglink.com>
+# Set to use "st1l9cv" in query string.
+# Here is list of known variables that can be passed to CGI
+# s  = Symbol			l9 = Last Trade
+# d1 = Date of Last Trade	t1 = Time of Last Trade
+# c1 = Change			c  = Change - Percent Change
+# o  = Open Trade		h  = High Trade
+# g  = Low Trade		v  = Volume
+# a  = Ask Price		b  = Bid Price
+# j  = 52 week low		k  = 52 week high
+# n  = Name of company		p  = Previous close
+# x  = Name of Stock Exchange
+
+# v.666a
+# As per suggestion from mjm, switched to using printf
+
+# v.666
+# Finally, an AST that is beautiful.
+
+# v.45
+# Code was completely broken, make changes
+# to get it to a working state.
+
+# v.40
+# major rewrite of code
+# lynx no longer needed. socket support added
+# volume no longer displayed
+# Special thanks to jonah schwartz for socket help
+
+# v.30
+# fix bug where new stocks don't show up because they 
+# don't have a "Chart" field.
+
+# v.20
+# reads from stdin by default. If no arguments are
+# passed, looks for a (CR separated) .astrc file
+# containing list of stock tickers. If no arguments
+# are passed and no .astrc file is present, a default
+# list of stocks is used.
+
+# v.10
+# basic functionality with some bug fixes
+use Socket;
+
+$home = $ENV{"HOME"};
+
+if ($ARGV[0]) {
+  @stlist = @ARGV;
+}
+
+elsif (-e "$home/.astrc") {
+  open (FILE, "$home/.astrc");
+  @stlist = <FILE>;
+  chop @stlist;
+}
+
+else {
+  @stlist = ( "sunw", "aapl", "xrx", "csco", "yhoo" );
+}
+
+###Example query to comma seperated yahoo quote CGI
+###http://quote.yahoo.com/d/quotes.csv?s=KDHAX&f=sl1pd1cv&e=.csv
+
+$str = "/d/quotes.csv\?s=";
+
+#Add all quotes to a scalar called quotes which can be used in the
+#query string as well as below in the while loop
+$quotes = join '+',@stlist;
+
+$str .= "$quotes&f=st1ohgl9v&e=.csv";
+
+$FH = getwww ("quote.yahoo.com", 80, $str);
+
+print "Symbol\tTime\tOpen\tHigh\tLow\tLastTrade\tVolume\n";
+while (<$FH>) {
+
+  #chop off newline
+  chomp;
+
+  #Get rid of ' - '
+  s/ - /,/g; 
+  #Get rid of '"'
+  s/\"//g;
+
+  # Split table data by ','
+  ($a, $b, $c, $d, $e, $f, $g) = split (",");
+
+  #print info if $a is one of the quotes desired
+  if ($quotes =~ /$a/i) {
+    printf "%s\t%s\t%.3f\t%.3f\t%.3f\t%.3f\t%d\n", $a, $b, $c, $d, $e, $f, $g;
+  }
+}
+
+####
+# This function does all the grunt work for any function that needs
+# to make net calls.
+#   $host - the server to connect to (by name)
+#   $port - the port to use
+#   $req - the request to issue in HTTP style..
+# "GET " will automatically be appended to the begining of $req,
+#
+#
+#returns FH
+sub getwww{
+    my $host = shift;
+    my $port = shift;
+    my $req = shift;
+
+    # print "#### $host $port $req ####\n";
+
+    
+    $req = "GET " . $req . " HTTP/1.0\n\n";
+    
+    my $iaddr = inet_aton $host
+	# or die "no address for $host ($!)\n";
+	or return undef;
+    my $paddr = sockaddr_in $port, $iaddr;
+    my $proto = getprotobyname 'tcp'
+	# or die "can't look up 'tcp'\n";
+	or return undef;
+	
+    socket S, PF_INET, SOCK_STREAM, $proto
+	# or die "socket failed ($!)\n";
+	or return undef;
+    
+    connect S, $paddr
+	# or die "connect failed ($!)\n";
+	or return undef;
+    
+    my $oldFh = select S;                      # unbuffer the socket
+    $| = 1;
+    select $oldFh;
+
+    print S $req;
+
+    my $result = \*S;
+    
+    return $result;
+}

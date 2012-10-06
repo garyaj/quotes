@@ -1,0 +1,46 @@
+#!/usr/bin/perl -w
+#Add today's prices to history file
+#for i in `cat ~/bin/asxopts.txt`; do
+#	j=`echo $i | tr '[A-Z]' '[a-z]'`
+#	echo $i $j
+#	getintra $i >> /usr/local/lib/data/etos/$j.txt
+#done
+#for i in `cat ~/bin/sdoclist.txt` ; do
+#	j=`echo $i | tr '[A-Z]' '[a-z]'`
+#	echo $i $j
+#	getintra $i >> /usr/local/lib/data/sdoc/$j.txt
+#done
+use Fcntl;
+use MLDBM qw(DB_File Storable);
+use DB_File;
+use Carp;
+use POSIX qw(strftime);
+use strict;
+
+&updatetoday("asxopts", "etos");
+#&updatetoday("sdoclist", "sdoc");
+
+sub updatetoday {
+	my ($asxfile, $datadir) = @_;
+	my ($i, $j, $k);
+	my @a;
+	my %h;
+	open(ASX, "$ENV{HOME}/bin/$asxfile.txt")
+		or die "Can't open $ENV{HOME}/bin/$asxfile.txt";
+	while(<ASX>) {
+		chomp;
+		$j = $i = $_;
+		$j = lc($i);
+		print "$i $j\n";
+
+		tie %h, 'MLDBM', "$datadir/$j", O_RDWR|O_CREAT, 0664, $DB_BTREE
+			or croak "Cannot access $datadir/$j database:$!\n";
+
+		@a = split /,/, `$ENV{HOME}/bin/getintra $i`;
+		$k = shift @a;
+		$h{$k} = [@a];
+		untie %h;
+	}
+	close ASX;
+	return;
+}

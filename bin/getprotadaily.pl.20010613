@@ -1,0 +1,135 @@
+#!/usr/local/bin/perl -w
+# GAJ:20010610: get all of ASX shares in blocks of n(=100) from Yahoo
+# Saves huge amount of time and useless HTML padding
+# Quotes delayed at least 20 minutes
+
+# Modified to use comma separated yahoo CGI
+# Josh McIver <jmmc at flaglink.com>
+# Set to use "st1l9cv" in query string.
+# Here is list of known variables that can be passed to CGI
+# s  = Symbol			l9 = Last Trade
+# d1 = Date of Last Trade	t1 = Time of Last Trade
+# c1 = Change			c  = Change - Percent Change
+# o  = Open Trade		h  = High Trade
+# g  = Low Trade		v  = Volume
+# a  = Ask Price		b  = Bid Price
+# j  = 52 week low		k  = 52 week high
+# n  = Name of company		p  = Previous close
+# x  = Name of Stock Exchange
+
+use Socket;
+use Class::Date qw(date);
+use strict;
+
+my $dt = date(time);
+my $today = sprintf("%04d%02d%02d", $dt->year, $dt->month, $dt->day);
+
+$|++;
+my $dayfile = "$ENV{HOME}/allstks_day_$today.txt";
+
+open(OUT, ">$dayfile") or die "Can't open $dayfile";
+select OUT;
+
+my $pfile = "allasxcodes.txt";
+open(IN, "$ENV{HOME}/bin/$pfile") or die "Can't open $pfile";
+my @stlist = <IN>;
+close IN;
+chop @stlist;
+
+###Example query to comma seperated yahoo quote CGI
+###http://quote.yahoo.com/d/quotes.csv?s=KDHAX&f=sl1pd1cv&e=.csv
+my $n = 100;
+my $last;
+my $quotes;
+my $FH;
+my $str;
+my ($a, $c, $d, $e, $f, $g);
+
+for (my $i = 0; $i < $#stlist; $i+=$n) {
+	$last = ($i+$n < $#stlist? $i+$n : $#stlist+1);
+
+	$str = "/d/quotes.csv\?s=";
+
+	#Add all quotes to a scalar called quotes which can be used in the
+	#query string as well as below in the while loop
+	$quotes = join '.ax+', @stlist[$i..$last-1];
+	$quotes =~ s/$/.ax/;
+
+	$str .= "$quotes&f=sohgl9v&e=.csv";
+
+	$FH = getwww ("quote.yahoo.com", 80, $str);
+
+	while (<$FH>) {
+		#chop off newline
+		chomp;
+		#Get rid of ' - '
+		s/ - /,/g; 
+		#Get rid of '"'
+		s/\"//g;
+		# Split table data by ','
+		($a, $c, $d, $e, $f, $g) = split (",");
+
+		#print info if $a is one of the quotes desired and volume > 0
+		if ($quotes =~ /$a/i) {
+			$a =~ s/\.AX$//i;
+			print STDERR "$a:";
+			$g =~ s#N/A#0#;
+			if ($g > 0) {
+				if ($f > 0 and $c == 0 and $d == 0 and $e == 0) {
+					$c = $d = $e = $f;
+				}
+				printf "%s\t%s\t%.3f\t%.3f\t%.3f\t%.3f\t%d\r", $a, $dt->dmy, $c, $d, $e, $f, $g;
+				print STDERR "$f";
+			}
+			print STDERR "\n";
+		}
+	}
+}
+
+close OUT;
+####
+# This function does all the grunt work for any function that needs
+# to make net calls.
+#   $host - the server to connect to (by name)
+#   $port - the port to use
+#   $req - the request to issue in HTTP style..
+# "GET " will automatically be appended to the begining of $req,
+#
+#
+#returns FH
+sub getwww{
+    my $host = shift;
+    my $port = shift;
+    my $req = shift;
+
+    # print "#### $host $port $req ####\n";
+
+    
+    $req = "GET " . $req . " HTTP/1.0\n\n";
+    
+    my $iaddr = inet_aton $host
+	# or die "no address for $host ($!)\n";
+	or return undef;
+    my $paddr = sockaddr_in $port, $iaddr;
+    my $proto = getprotobyname 'tcp'
+	# or die "can't look up 'tcp'\n";
+	or return undef;
+	
+    socket S, PF_INET, SOCK_STREAM, $proto
+	# or die "socket failed ($!)\n";
+	or return undef;
+    
+    connect S, $paddr
+	# or die "connect failed ($!)\n";
+	or return undef;
+    
+    my $oldFh = select S;                      # unbuffer the socket
+    $| = 1;
+    select $oldFh;
+
+    print S $req;
+
+    my $result = \*S;
+    
+    return $result;
+}

@@ -1,0 +1,52 @@
+#!/usr/local/bin/perl -w
+use lib "$ENV{HOME}/lib";
+use TradingRoomOHLCVI;
+use strict;
+
+my @t = localtime();
+my $today = sprintf("%04d%02d%02d", $t[5]+1900, $t[4]+1 ,$t[3]);
+
+$|++;
+my $skipcode = '';
+if (scalar @ARGV == 1) {
+	$skipcode = shift @ARGV;
+}
+my $dayfile;
+if ($skipcode) {
+	$dayfile = "$ENV{HOME}/allstks_day_${skipcode}_$today.txt";
+} else {
+	$dayfile = "$ENV{HOME}/allstks_day_$today.txt";
+}
+open(OUT, ">$dayfile") or die "Can't open $dayfile";
+select OUT;
+
+my $pfile = "allasxcodes.txt";
+open(IN, "$ENV{HOME}/bin/$pfile") or die "Can't open $pfile";
+$,="\t";
+my @a;
+my $tr;
+my $skipseen = 1;
+if ($skipcode) {
+	$skipseen = 0;
+}
+
+while (<IN>) {
+	chomp;
+	if (not $skipseen) {
+		if (/^$skipcode$/) {
+			$skipseen = 1;
+		}
+		next;
+	}
+	print STDERR "$_:";
+	$tr = TradingRoomOHLCVI->new($_);
+	@a = $tr->showit;
+	if ($a[2] or $a[3] or $a[4] or $a[5]) {
+		print @a;
+		print "\r";
+		print STDERR "$a[5]";
+	}
+	print STDERR "\n";
+}
+close IN;
+close OUT;

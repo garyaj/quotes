@@ -1,0 +1,81 @@
+#!/usr/local/bin/perl -w
+use Finance::Quote;
+
+$|++;
+
+my @t = localtime();
+my $today = sprintf("%04d%02d%02d", $t[5]+1900, $t[4]+1 ,$t[3]);
+my $stoday = sprintf("%02d/%02d/%04d", $t[3], $t[4]+1 ,$t[5]+1900);
+my $stock;
+my @a;
+my $rowcount;
+my $itmcount;
+my $count;
+
+#my $dayfile = "$ENV{HOME}/allidx_day_$today.txt";
+#open(OUT, ">$dayfile") or die "Can't open $dayfile";
+#select OUT;
+
+#Get US index prices
+my $q = Finance::Quote->new;
+my %s;
+my %xcode = (
+	'^DJI' => 'XDJ',
+	'^SPC' => 'XSP',
+	'^IXIC' => 'XNQ',
+	'^AORD' => 'XAO',
+	'^AAMI' => 'XAM',
+	'^AAII' => 'XAI',
+	'^AARI' => 'XAR',
+	'^AATI' => 'XAT',
+	'^ABII' => 'XBF',
+	'^ABMI' => 'XBM',
+	'^ACII' => 'XCE',
+	'^ADCI' => 'XDC',
+	'^ADII' => 'XDI',
+	'^ADRI' => 'XDR',
+	'^AENI' => 'XEG',
+	'^AXEY' => 'XEY',
+	'^AFHI' => 'XFH',
+	'^AFLI' => 'XFL',
+	'^AGII' => 'XGO',
+	'^AXHB' => 'XHB',
+	'^AFSI' => 'XIF',
+	'^AIII' => 'XIN',
+	'^AXIU' => 'XIU',
+	'^AXJI' => 'XJI',
+	'^AXJO' => 'XJO',
+	'^AXJP' => 'XJP',
+	'^AXJR' => 'XJR',
+	'^AXKI' => 'XKI',
+	'^AXKO' => 'XKO',
+	'^AXKP' => 'XKP',
+	'^AXKR' => 'XKR',
+	'^AXMD' => 'XMD',
+	'^AMEI' => 'XME',
+	'^AXMI' => 'XMI',
+	'^AXMR' => 'XMR',
+	'^AXMT' => 'XMT',
+	'^AOMI' => 'XOM',
+	'^AXPI' => 'XPI',
+	'^APPI' => 'XPP',
+	'^APTI' => 'XPT',
+	'^ARII' => 'XRE',
+	'^AXTE' => 'XTE',
+	'^AXTI' => 'XTI',
+	'^ATLI' => 'XTL',
+	'^ATOI' => 'XTO',
+	'^ATII' => 'XTP',
+	'^AXTR' => 'XTR',
+	'^ATUI' => 'XTU',
+);
+my $k;
+my $k2;
+for my $code (keys %xcode) {
+	%s = $q->fetch("yahoo",$code);
+ 	print "$xcode{$code}\t";
+ 	$s{$code,'date'} =~ s%(\d+)/(\d+)/(\d+)%$2/$1/$3%;
+ 	print "$s{$code,'date'}\t$s{$code,'open'}\t$s{$code,'high'}\t$s{$code,'low'}\t$s{$code,'last'}\n";
+}
+
+#close OUT;

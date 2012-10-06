@@ -1,0 +1,30 @@
+#!/usr/bin/perl -w
+use Finance::Quote;
+use strict;
+my $q = Finance::Quote->new;
+my %stockinfo;
+my %xcode = (
+	'^DJI' => 'XDJ',
+	'^GSPC' => 'XSP',
+	'^IXIC' => 'XNQ'
+);
+
+my $key;
+for my $code (keys %xcode) {
+	%stockinfo = $q->fetch("yahoo",$code);
+#	while(my($k,$v) = each %stockinfo) {
+#		print "$k: $v\n" if defined $v;
+#	}
+ 	print "$xcode{$code}\t";
+ 	$key = $code."\034date";
+ 	$stockinfo{$key} =~ s%(\d+)/(\d+)/(\d+)%$2/$1/$3%;
+ 	print $stockinfo{$key},"\t";
+ 	$key = $code."\034open";
+ 	print $stockinfo{$key},"\t";
+ 	$key = $code."\034high";
+ 	print $stockinfo{$key},"\t";
+ 	$key = $code."\034low";
+ 	print $stockinfo{$key},"\t";
+ 	$key = $code."\034last";
+ 	print $stockinfo{$key},"\r";
+}

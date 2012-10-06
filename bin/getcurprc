@@ -1,0 +1,3 @@
+#!/bin/sh
+f1=`echo $1 | tr [A-Z] [a-z]`
+wget --output-document=- http://203.26.177.136/investments/tr_prev_sec_details.isam?code=$1

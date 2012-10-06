@@ -1,0 +1,8 @@
+#!/sw/bin/perl -w
+use Class::Date qw(date);
+
+my $d = date(time)+'-1M';
+my $cmd = sprintf "tar zcf tar_%04d%02d.tgz all*_%04d%02d*.txt", $d->year, $d->month, $d->year, $d->month;
+#my $cmd = sprintf "ls -l all*_%04d%02d*.txt", $d->year, $d->month;
+#print $cmd,"\n";
+system($cmd) == 0 or die "Can't create archive:$cmd $!";

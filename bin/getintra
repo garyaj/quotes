@@ -1,0 +1,4 @@
+#!/bin/sh
+f1=`echo $1 | tr [A-Z] [a-z]`
+#wget --output-document=$f1.txt http://203.26.177.136/investments/tr_cur_sec_intraday_price.isam?code=$1
+wget -q --output-document=- http://203.26.177.136/investments/download/tr_cur_sec_intraday_price.isam?code=$1 | sumcurrent.pl

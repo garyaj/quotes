@@ -1,0 +1,51 @@
+#!/usr/bin/perl -w
+#Given an ASX code, the script retrieves an HTML page containing the 
+#name of the stock from 203.26.177.136
+#and this HTML page is parsed to extract the name
+# In: CODE
+# Out: CODE|Name
+package TableStripper;
+use base HTML::Parser;
+sub start {
+	my($self, $tagname, $attr, $attrseq, $origtext) = @_;
+	$self->{tr_seen}++ if $tagname eq "tr";
+	$self->{td_seen}++ if $tagname eq "td";
+	$self->SUPER::start(@_);
+}
+sub end {
+	my($self, $tagname, $origtext) = @_;
+	$self->SUPER::end(@_);
+	$self->{td_seen}-- if $tagname eq "td";
+	$self->{tr_seen}-- if $tagname eq "tr";
+}
+sub text {
+	my($self, $origtext, $is_cdata) = @_;
+	if ($self->{tr_seen} and $self->{td_seen}) {
+	  if ($origtext =~ /Issuer Name:/) {
+			$self->{iss_seen}++;
+		} elsif ($self->{iss_seen}) {
+			$main::out_text = "$origtext";
+			$self->{iss_seen}=0;
+	  }	
+	}
+}
+
+package main;
+use Fcntl;
+use MLDBM qw(DB_File Storable);
+use DB_File;
+use Carp;
+use POSIX qw(strftime);
+use strict;
+$|++; #immediate output
+
+my $response;
+my $tr_seen;
+my $tt_seen;
+my $out_text;
+my $stock = shift @ARGV;
+system("wget -nv -O /tmp/tmpwg.txt http://203.26.177.136/investments/tr_prev_sec_details.isam?code=$stock");
+TableStripper->new->parse_file("/tmp/tmpwg.txt");
+$main::out_text =~ s/^\s+//;
+$main::out_text =~ s/\s+$//;
+print "$stock|$main::out_text\n";
