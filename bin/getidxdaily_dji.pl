@@ -1,11 +1,11 @@
 #!/usr/bin/env perl 
 #===============================================================================
 #
-#         FILE:  testscrappy.pl
+#         FILE:  getidxdaily_dji.pl
 #
-#        USAGE:  ./testscrappy.pl  
+#        USAGE:  ./getidxdaily_dji.pl  
 #
-#  DESCRIPTION:  Test Scrappy on Yahoo Finance pages.
+#  DESCRIPTION:  Extract US index data from Yahoo Finance pages.
 #
 #      OPTIONS:  ---
 # REQUIREMENTS:  ---
@@ -27,7 +27,12 @@ my $yearstring = " $year 00:00:01";
 #printf "%02d/%02d/%04d\n", $day, $month+1, $year+1900;
 my ($open, $date, $high, $low, $close);
 my $url;
-for my $code (qw(DJI IXIC GSPC)) {
+my %stlist = (
+	'DJI' => 'XDOW',
+	'GSPC' => 'XSP',
+	'IXIC' => 'XNQ',
+);
+for my $code (keys %stlist) {
   $url = "http://finance.yahoo.com/q/bc?s=%5E$code+Basic+Chart&t=1d";
   ($open, $high, $low, $close) = (0,0,0,0);
   my $scraper = Scrappy->new;
@@ -77,7 +82,7 @@ for my $code (qw(DJI IXIC GSPC)) {
     );
   }
   printf "%s,%s,%.3f,%.3f,%.3f,%.3f,0\n",
-    $code, $date, $open, $high, $low, $close;
+    $stlist{$code}, $date, $open, $high, $low, $close;
 }
 
 # vi:ai:et:sw=2 ts=2
