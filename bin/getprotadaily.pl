@@ -35,8 +35,8 @@ my $quotes = $yq->getquotes(\@stlist);
 
 foreach my $q (@{$quotes}) {
 	print STDERR "$q->[0]:$q->[4]\n";
-	printf "%s\t%s\t%.3f\t%.3f\t%.3f\t%.3f\t%d\r",
-		$q->[0], $dt->dmy, $q->[1], $q->[2], $q->[3], $q->[4], $q->[5];
+	printf "%s,%s,%.3f,%.3f,%.3f,%.3f,%d\n",
+		$q->[0], $today, $q->[1], $q->[2], $q->[3], $q->[4], $q->[5];
 }
 
 close OUT;

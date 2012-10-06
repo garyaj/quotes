@@ -29,79 +29,80 @@ use LWP::Simple;
 use Finance::Quote;
 
 sub new {
-	my ($proto) = @_;
-	my $class = ref($proto) || $proto;
-	my $self  = {};
-	bless ($self, $class);
-	$self->init();
-	return $self;
+  my ($proto) = @_;
+  my $class = ref($proto) || $proto;
+  my $self  = {};
+  bless ($self, $class);
+  $self->init();
+  return $self;
 }
 
 sub init {
-	my ($self) = @_;
-	return $self;
+  my ($self) = @_;
+  return $self;
 }
 
 sub getquotes {
-	my ($self, $stlist) = @_;
-	my @qarray;
-	###Example query to comma seperated yahoo quote CGI
-	###http://quote.yahoo.com/d/quotes.csv?s=KDH.AX&f=sohgl9v&e=.csv
-	my $n = 100;
-	my @q;
-	my $last;
-	my $quotes;
-	my $str;
+  my ($self, $stlist) = @_;
+  my @qarray;
+  ###Example query to comma separated yahoo quote CGI
+  ###http://quote.yahoo.com/d/quotes.csv?s=KDH.AX&f=sohgl9v&e=.csv
+  my $n = 100;
+  my @q;
+  my $last;
+  my $quotes;
+  my $str;
 
-	my $asx = Finance::Quote->new;	#fallback if Yahoo can't deliver
-	$asx->require_labels(qw/open high low last volume/);
+  my $asx = Finance::Quote->new("ASX");	#fallback if Yahoo can't deliver
+  $asx->require_labels(qw/open high low last volume/);
 
-	for (my $i = 0; $i < $#{$stlist}; $i+=$n) {
-		$last = ($i+$n < $#{$stlist}? $i+$n : $#{$stlist}+1);
+  for (my $i = 0; $i < $#{$stlist}; $i+=$n) {
+    $last = ($i+$n < $#{$stlist}? $i+$n : $#{$stlist}+1);
 
-		$str = "/d/quotes.csv\?s=";
+    $str = "/d/quotes.csv\?s=";
 
-		#Add all quotes to a scalar called quotes which can be used in the
-		#query string as well as below in the while loop
-		$quotes = join '.ax+', @{$stlist}[$i..$last-1];
-		$quotes =~ s/$/.ax/;
+    #Add all quotes to a scalar called quotes which can be used in the
+    #query string as well as below in the while loop
+    $quotes = join '.ax+', @{$stlist}[$i..$last-1];
+    $quotes =~ s/$/.ax/;
 
-		$str .= "$quotes&f=sohgl9v&e=.csv";
+    $str .= "$quotes&f=sohgl9v&e=.csv";
 
-		my $res = get("http://quote.yahoo.com$str");
-		my @lines = split /\r?\n/, $res;
-		foreach (@lines) {
-			#Get rid of ' - '
-			s/ - /,/g; 
-			#Get rid of '"'
-			s/\"//g;
-			s#N/A#0#g;
-			# Split table data by ','
-			@q = split (",");
+    my $res = get("http://quote.yahoo.com$str");
+    my @lines = split /\r?\n/, $res;
+    foreach (@lines) {
+      #Get rid of ' - '
+      s/ - /,/g; 
+      #Get rid of '"'
+      s/\"//g;
+      s#N/A#0#g;
+      # Split table data by ','
+      @q = split (",");
 
-			#print info if $a is one of the quotes desired and volume > 0
-			if ($quotes =~ /$q[0]/i) {
-				$q[0] =~ s/\.AX$//i;
-				if ($q[5] > 0) {
-					if (min(@q[1..4]) == 0) {	#one of the fields is zero/missing
-						my %info = $asx->fetch("asx",$q[0]);
-						$a[0] = $info{$q[0],'open'};
-						$a[1] = $info{$q[0],'high'};
-						$a[2] = $info{$q[0],'low'};
-						$a[3] = $info{$q[0],'last'};
-						$a[4] = $info{$q[0],'volume'};
+      #print info if $a is one of the quotes desired and volume > 0
+      if ($quotes =~ /$q[0]/i) {
+        $q[0] =~ s/\.AX$//i;
+        if ($q[5] > 0) {
+          if (min(@q[1..4]) == 0) {	#one of the fields is zero/missing
+            my %info = $asx->fetch("asx",$q[0]);
+            $a[0] = $info{$q[0],'open'};
+            $a[1] = $info{$q[0],'high'};
+            $a[2] = $info{$q[0],'low'};
+            $a[3] = $info{$q[0],'last'};
+            $a[4] = $info{$q[0],'volume'};
 
-						#only change values in @q if ASX quote is better than the Yahoo one
-						if (min(@a) > 0) {	#all data > 0
-							@q[1..5] = @a;
-						}
-					}
-					push @qarray, [@q];
-				}
-			}
-		}
-	}
-	return \@qarray;
+            #only change values in @q if ASX quote is better than the Yahoo one
+            if (min(@a) > 0) {	#all data > 0
+              @q[1..5] = @a;
+            }
+          }
+          push @qarray, [@q];
+        }
+      }
+    }
+  }
+  return \@qarray;
 }
 
 1;
+# vi:ai:et:sw=2 ts=2
