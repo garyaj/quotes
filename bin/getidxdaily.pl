@@ -75,14 +75,11 @@ foreach (@lines) {
 	# Split table data by ','
 	($a, $b, $c, $d, $e, $f) = split (",");
 
-	print STDERR "$stlist{$a}:";
 	if ($f > 0 and $c == 0 and $d == 0 and $e == 0) {
 		$c = $d = $e = $f;
 	}
-	$b =~ s%(\d+)/(\d+)/(\d+)%$3$1$2%;
+	$b =~ s/(\d+)\/(\d+)\/(\d+)/sprintf("%4d%02d%02d",$3,$1,$2)/e;
 	printf "%s,%s,%.3f,%.3f,%.3f,%.3f\n", $stlist{$a}, $b, $c, $d, $e, $f;
-	print STDERR "$f";
-	print STDERR "\n";
 }
 
 close OUT;
